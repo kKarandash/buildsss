@@ -18,7 +18,7 @@ export const app = new Frog({
     height: 1024,
     width: 1024,
   },
-  title: "My App Title",
+  title: "Build Stats",
 }).use(
   neynar({
     apiKey: process.env.NEYNAR_API_KEY || "NEYNAR_API_DOCS",
