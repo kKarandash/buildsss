@@ -26,6 +26,17 @@ export const app = new Frog({
   })
 );
 
+// Конфигурация координат для текста и изображения
+const textPositions = {
+  username: { left: '500px', top: '500px' },
+  rank: { left: '500px', top: '500px' },
+  budget: { left: '500px', top: '500px' },
+  score: { left: '500px', top: '500px' },
+  nominationsGiven: { left: '500px', top: '500px' },
+  nominationsReceived: { left: '500px', top: '500px' },
+  image: { left: '100px', top: '100px' }, // Добавлена позиция для изображения
+};
+
 app.frame("/", (c) => {
   return c.res({
     image: (
@@ -35,18 +46,35 @@ app.frame("/", (c) => {
         alignHorizontal="center"
         alignVertical="center"
         background="bg"
+        position="relative"
       >
-        <Image
-          width="72"
-          height="72"
-          src="https://build-frame.vercel.app/build_logo.png"
-        ></Image>
-        <Text align="center" size="64" color="white" font="title_display">
-          Build Stats
-        </Text>
-        <Text size="16" color="white" align="end">
-          by @yanvictorsn.eth
-        </Text>
+        <Box
+          position="absolute"
+          top="0"
+          left="0"
+          width="100%"
+          height="100%"
+          overflow="hidden"
+          zIndex="0"
+        >
+          <Image
+            src="https://i.imgur.com/lNHAp4t.png"
+            width="100%"
+            height="auto"
+          />
+        </Box>
+        <Box zIndex="2">
+          <Image
+            width="72"
+            height="72"
+            src="https://build-frame.vercel.app/build_logo.png"
+          />
+        </Box>
+        <div style={{ position: 'absolute', right: '20px', bottom: '20px', backgroundColor: 'transparent', display: 'flex', zIndex: '2' }}>
+          <Text size="16" color="white" align="end">
+            by @yanvictorsn.eth
+          </Text>
+        </div>
       </Box>
     ),
     intents: [
@@ -76,19 +104,20 @@ app.frame("/stats", async (c) => {
       <TextInput placeholder="Search by username or fid" />,
       <Button action="/stats">My Stats / 🔍 Search</Button>,
       <Button action="/nominators">Nominators</Button>,
+      <Button action={`/share/${user}`}>Share</Button>
     ],
   });
 });
 
 app.image("/stats-img/:user", async (c) => {
-  const { user } = c.req.param();
+  const { user }: { user: string } = c.req.param();
   const options = {
     method: "GET",
-    headers: { accept: "application/json", api_key: "NEYNAR_API_DOCS" },
+    headers: { accept: "application/json", api_key: process.env.NEYNAR_API_KEY || "NEYNAR_API_DOCS" },
   };
   let buildData;
-  let image;
-  let username;
+  let image: string;
+  let username: string;
   if (/^\d+$/.test(user)) {
     const { address, imageData, usernameData } = await getUserFid(user);
     image = imageData;
@@ -103,7 +132,7 @@ app.image("/stats-img/:user", async (c) => {
 
   async function getUserNameData(user: string) {
     const response = await fetch(
-      `https://api.neynar.com/v2/farcaster/user/search?q=${user}&viewer_fid=1&limit=1`,
+      `https://api.neynar.com/v2/farcaster/user/search?q=${encodeURIComponent(user)}&viewer_fid=1&limit=1`,
       options
     );
 
@@ -116,12 +145,11 @@ app.image("/stats-img/:user", async (c) => {
 
   async function getUserFid(user: string) {
     const response = await fetch(
-      `https://api.neynar.com/v2/farcaster/user/bulk?fids=${user}&viewer_fid=1`,
+      `https://api.neynar.com/v2/farcaster/user/bulk?fids=${encodeURIComponent(user)}&viewer_fid=1`,
       options
     );
 
     const data = await response.json();
-    console.log(data);
     const address = data.users[0].verified_addresses.eth_addresses[0];
     const imageData = data.users[0].pfp_url;
     const usernameData = data.users[0].username;
@@ -133,206 +161,112 @@ app.image("/stats-img/:user", async (c) => {
       "cache-control": "max-age=0",
     },
     image: (
-      <Box
-        gap="16"
-        grow
-        flexDirection="column"
-        alignHorizontal="center"
-        alignVertical="center"
-        background="bg"
-        height="100%"
-        padding="48"
-      >
-        <Text align="center" size="64" color="white" font="title_display">
-          Build Stats
-        </Text>
+      <Box position="relative">
         <Box
-          justifyContent="space-between"
-          alignItems="center"
-          backgroundColor="white"
           width="100%"
-          borderColor="black"
-          borderStyle="solid"
-          borderWidth="2"
-          boxShadow="10px 10px 0 0 black"
-          grow
+          height="auto"
+          zIndex="0"
         >
-          {/* Build Status */}
-          <Box
-            flexDirection="row"
-            height="96"
-            width="100%"
-            gap="8"
-            paddingTop="24"
-            grow
-            paddingBottom="30"
-          >
-            <Column
-              flexDirection="column"
-              alignContent="center"
-              alignItems="center"
-              justifyContent="center"
-              width="2/4"
-            >
-              <Box justifyContent="center" alignItems="center">
-                <Box
-                  display="flex"
-                  flexDirection="column"
-                  justifyContent="center"
-                  alignItems="center"
-                  gap="8"
-                >
-                  <Box justifyContent="center" alignItems="center">
-                    <Image
-                      width="64"
-                      height="64"
-                      borderRadius="48"
-                      src={image}
-                    ></Image>
-                  </Box>
-                  <Box justifyContent="center" gap="4" alignItems="flex-start">
-                    <Text color="black" font="title_display" size="24">
-                      @{username}
-                    </Text>
-                  </Box>
-                </Box>
-              </Box>
-            </Column>
-            <Column
-              width="2/4"
-              flexDirection="column"
-              alignContent="center"
-              alignItems="center"
-              justifyContent="center"
-              gap="4"
-            >
-              <Text color="blue" size="20" font="default">
-                Rank
-              </Text>
-              <Text color="black" font="title_display" size="32">
-                {buildData.rank !== undefined
-                  ? String(buildData.rank)
-                  : "No rank available"}
-              </Text>
-            </Column>
-          </Box>
-          {/* Line */}
-          <Box
-            background="white"
-            paddingRight="16"
-            paddingLeft="16"
-            width="100%"
-            height="2"
-            grow
-          >
-            <Box background="black" width="100%" height="2"></Box>
-          </Box>
-          {/* Builder Data */}
-          <Box
-            width="100%"
-            height="72"
-            justifyContent="center"
-            alignItems="center"
-            flexDirection="column"
-            gap="14"
-            grow
-            paddingBottom="30"
-          >
-            <Text color="blue" font="default">
-              Builder Data
-            </Text>
-            <Box
-              width="100%"
-              height="64"
-              display="flex"
-              flexDirection="row"
-              justifyContent="center"
-              alignItems="center"
-            >
-              <Column justifyContent="center" alignItems="center" gap="4">
-                {" "}
-                <Text color="blue" size="20" font="default">
-                  Budged
-                </Text>
-                <Text color="black" font="default_points" size="24">
-                  {buildData.build_budget.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </Text>
-              </Column>
-              <Column justifyContent="center" alignItems="center" gap="4">
-                {" "}
-                <Text color="blue" size="20" font="default">
-                  Score
-                </Text>
-                <Text color="black" font="default_points" size="24">
-                  {buildData.build_score.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </Text>
-              </Column>
-            </Box>
-          </Box>
-          {/* Line 2 */}
-          <Box
-            background="white"
-            paddingRight="16"
-            paddingLeft="16"
-            width="100%"
-            height="2"
-            grow
-          >
-            <Box background="black" width="100%" height="2"></Box>
-          </Box>
-          {/* Nominations Points */}
-          <Box
-            width="100%"
-            height="72"
-            justifyContent="center"
-            alignItems="center"
-            gap="14"
-            paddingBottom="30"
-            grow
-          >
-            <Text color="blue" font="default">
-              Nomination Points
-            </Text>
-            <Box
-              width="100%"
-              height="64"
-              display="flex"
-              flexDirection="row"
-              justifyContent="center"
-              alignItems="center"
-            >
-              <Column justifyContent="center" alignItems="center" gap="4">
-                <Text color="blue" size="20" font="default">
-                  Sent
-                </Text>
-                <Text color="black" font="default_points" size="24">
-                  {String(buildData.nominations_given)}
-                </Text>
-              </Column>
-              <Column justifyContent="center" alignItems="center" gap="4">
-                <Text color="blue" size="20" font="default">
-                  Earned
-                </Text>
-                <Text color="black" font="default_points" size="24">
-                  {String(buildData.nominations_received)}
-                </Text>
-              </Column>
-            </Box>
-          </Box>
-        </Box>
-        <Box justifyContent="center" alignContent="center">
           <Image
-            width="40"
-            height="40"
-            src="https://build-frame.vercel.app/build_logo.png"
-          ></Image>
+            src="https://i.imgur.com/lNHAp4t.png"
+            width="100%"
+            height="auto"
+          />
         </Box>
+        <div
+          style={{
+            position: 'absolute',
+            left: textPositions.image.left,
+            top: textPositions.image.top,
+            zIndex: '2',
+            display: 'flex', // Добавлено свойство display
+          }}
+        >
+          <Image
+            width="64"
+            height="64"
+            borderRadius="48"
+            src={image}
+          />
+        </div>
+        <div style={{ position: 'absolute', left: textPositions.username.left, top: textPositions.username.top, backgroundColor: 'transparent', zIndex: '2', display: 'flex' }}>
+          <Text color="black" font="title_display" size="24">
+            @{username}
+          </Text>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: textPositions.rank.top,
+            left: textPositions.rank.left,
+            zIndex: "2",
+            display: 'flex',
+          }}
+        >
+          <Text color="black" font="title_display" size="32">
+            {buildData.rank !== undefined
+              ? String(buildData.rank)
+              : "No rank available"}
+          </Text>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: textPositions.score.top,
+            left: textPositions.score.left,
+            zIndex: "2",
+            display: 'flex',
+          }}
+        >
+          <Text color="black" font="default_points" size="24">
+            {buildData.build_score.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: textPositions.budget.top,
+            left: textPositions.budget.left,
+            zIndex: "2",
+            display: 'flex',
+          }}
+        >
+          <Text color="black" font="default_points" size="24">
+            {buildData.build_budget.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: textPositions.nominationsGiven.top,
+            left: textPositions.nominationsGiven.left,
+            zIndex: "2",
+            display: 'flex',
+          }}
+        >
+          <Text color="black" font="default_points" size="24">
+            {String(buildData.nominations_given)}
+          </Text>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: textPositions.nominationsReceived.top,
+            left: textPositions.nominationsReceived.left,
+            zIndex: "2",
+            display: 'flex',
+          }}
+        >
+          <Text color="black" font="default_points" size="24">
+            {String(buildData.nominations_received)}
+          </Text>
+        </div>
       </Box>
     ),
   });
@@ -359,10 +293,10 @@ app.frame("/nominators", async (c) => {
 });
 
 app.image("/nominators/:user", async (c) => {
-  let { user } = c.req.param();
+  let { user }: { user: string } = c.req.param();
   const options = {
     method: "GET",
-    headers: { accept: "application/json", api_key: "NEYNAR_API_DOCS" },
+    headers: { accept: "application/json", api_key: process.env.NEYNAR_API_KEY || "NEYNAR_API_DOCS" },
   };
   let buildNomination;
   if (/^\d+$/.test(user)) {
@@ -370,13 +304,12 @@ app.image("/nominators/:user", async (c) => {
     buildNomination = await getBuildNominations(address);
   } else {
     const { address } = await getUserNameData(user);
-    console.log("Entrou aqui no nome");
     buildNomination = await getBuildNominations(address);
   }
 
   async function getUserNameData(user: string) {
     const response = await fetch(
-      `https://api.neynar.com/v2/farcaster/user/search?q=${user}&viewer_fid=1&limit=1`,
+      `https://api.neynar.com/v2/farcaster/user/search?q=${encodeURIComponent(user)}&viewer_fid=1&limit=1`,
       options
     );
 
@@ -384,13 +317,12 @@ app.image("/nominators/:user", async (c) => {
     const address = data.result.users[0].verified_addresses.eth_addresses[0];
     const imageData = data.result.users[0].pfp_url;
     const usernameData = data.result.users[0].username;
-    console.log(data.result);
     return { address, imageData, usernameData };
   }
 
   async function getUserFid(user: string) {
     const response = await fetch(
-      `https://api.neynar.com/v2/farcaster/user/bulk?fids=${user}&viewer_fid=1`,
+      `https://api.neynar.com/v2/farcaster/user/bulk?fids=${encodeURIComponent(user)}&viewer_fid=1`,
       options
     );
 
@@ -401,20 +333,15 @@ app.image("/nominators/:user", async (c) => {
     return { address, imageData, usernameData };
   }
 
-  const nominatorsData = [];
+  const nominatorsData: { originUsername: string; originRank: number }[] = [];
 
   for (let index = 0; index < Math.min(3, buildNomination.length); index++) {
     nominatorsData.push(buildNomination[index]);
   }
 
   const fetchNominatorData = async (nominator: { originUsername: string }) => {
-    const options = {
-      method: "GET",
-      headers: { accept: "application/json", api_key: "NEYNAR_API_DOCS" },
-    };
-
     const response = await fetch(
-      `https://api.neynar.com/v2/farcaster/user/search?q=${nominator}&viewer_fid=1&limit=1`,
+      `https://api.neynar.com/v2/farcaster/user/search?q=${encodeURIComponent(nominator.originUsername)}&viewer_fid=1&limit=1`,
       options
     );
     const data = await response.json();
@@ -422,7 +349,7 @@ app.image("/nominators/:user", async (c) => {
   };
 
   const promises = nominatorsData.map((nominator) =>
-    fetchNominatorData(nominator.originUsername)
+    fetchNominatorData(nominator)
   );
 
   const users = await Promise.all(promises);
@@ -435,7 +362,6 @@ app.image("/nominators/:user", async (c) => {
       userImage: users[index].pfp_url,
     });
   }
-  console.log(usersData);
 
   return c.res({
     image: (
@@ -478,7 +404,7 @@ app.image("/nominators/:user", async (c) => {
                     height="64"
                     borderRadius="160"
                     src={usersData[1].userImage}
-                  ></Image>
+                  />
                   <Text font="title_display" size="18">
                     #{nominatorsData[1].originRank}
                   </Text>
@@ -492,6 +418,7 @@ app.image("/nominators/:user", async (c) => {
                   height="160"
                   justifyContent="center"
                   alignItems="center"
+                  display="flex" // Добавлено свойство display
                 >
                   <Text color="white" size="48">
                     2
@@ -507,7 +434,7 @@ app.image("/nominators/:user", async (c) => {
                     height="64"
                     borderRadius="160"
                     src={usersData[0].userImage}
-                  ></Image>
+                  />
                   <Text font="title_display" size="18">
                     #{nominatorsData[0].originRank}
                   </Text>
@@ -521,6 +448,7 @@ app.image("/nominators/:user", async (c) => {
                   height="224"
                   justifyContent="center"
                   alignItems="center"
+                  display="flex" // Добавлено свойство display
                 >
                   <Text color="white" size="48">
                     1
@@ -529,7 +457,6 @@ app.image("/nominators/:user", async (c) => {
               </Box>
             </Column>
             <Column width="1/3">
-              {" "}
               <Box grow justifyContent="flex-end" alignItems="center" gap="4">
                 <Box justifyContent="center" alignItems="center" gap="4">
                   <Image
@@ -537,7 +464,7 @@ app.image("/nominators/:user", async (c) => {
                     height="64"
                     borderRadius="160"
                     src={usersData[2].userImage}
-                  ></Image>
+                  />
                   <Text font="title_display" size="18">
                     #{nominatorsData[2].originRank}
                   </Text>
@@ -551,6 +478,7 @@ app.image("/nominators/:user", async (c) => {
                   height="128"
                   justifyContent="center"
                   alignItems="center"
+                  display="flex" // Добавлено свойство display
                 >
                   <Text color="white" size="48">
                     3
@@ -560,15 +488,26 @@ app.image("/nominators/:user", async (c) => {
             </Column>
           </Box>
         </Box>
-        <Box justifyContent="center" alignContent="center" paddingTop="18">
+        <Box justifyContent="center" alignContent="center" paddingTop="18" display="flex">
           <Image
             width="40"
             height="40"
             src="https://build-frame.vercel.app/build_logo.png"
-          ></Image>
+          />
         </Box>
       </Box>
     ),
+  });
+});
+
+app.frame("/share/:user", async (c) => {
+  const { user }: { user: string } = c.req.param();
+  const warpcastUrl = `https://warpcast.com/~/compose?text=Check%20out%20my%20stats!%20https://localhost:5173/api/dev/stats-img/${encodeURIComponent(user)}`;
+  return c.res({
+    image: `/stats-img/${user}`,
+    intents: [
+      <Button action={warpcastUrl}>Click here to share on Warpcast</Button>
+    ]
   });
 });
 
