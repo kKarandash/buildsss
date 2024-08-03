@@ -502,7 +502,7 @@ app.image("/nominators/:user", async (c) => {
 
 app.frame("/share/:user", async (c) => {
   const { user }: { user: string } = c.req.param();
-  const warpcastUrl = `https://warpcast.com/~/compose?text=Check%20out%20my%20stats!%20https://localhost:5173/api/dev/stats-img/${encodeURIComponent(user)}`;
+  const warpcastUrl = `https://warpcast.com/~/compose?text=Check%20out%20my%20stats!%20https://buildsss.vercel.app/api/stats-img/${encodeURIComponent(user)}`;
   return c.res({
     image: `/stats-img/${user}`,
     intents: [
